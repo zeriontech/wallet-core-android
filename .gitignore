@@ -1,0 +1,28 @@
+*.iml
+.gradle/
+/local.properties
+.idea/
+/build
+/captures
+.externalNativeBuild
+
+#built application files
+*.apk
+*.ap_
+
+#crowdin props
+/crowdin.properties
+crowdin.properties
+
+# files for the dex VM
+*.dex
+
+# Java class files
+*.class
+
+# generated files
+bin/
+gen/
+
+# OSX files
+.DS_Store
