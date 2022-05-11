@@ -16,9 +16,12 @@ import wallet.core.jni.PrivateKey
 import wallet.core.jni.proto.Ethereum
 
 /**
- * Created by rolea on 21.04.2022.
+ * Created by rolea on 14.12.2022.
  */
 object Signer {
+    init {
+        System.loadLibrary("TrustWalletCore")
+    }
 
     fun sign(input: SignInput, privateKey: ByteArray): ByteArray {
         return when (input) {

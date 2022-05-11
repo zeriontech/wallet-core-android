@@ -1,9 +1,6 @@
 package io.zerion.wallet.core.models
 
 import io.zerion.wallet.core.exceptions.WalletException
-import io.zerion.wallet.core.utils.WalletContainerParser
-import io.zerion.wallet.core.models.WalletContainer.Type.Mnemonic
-import io.zerion.wallet.core.utils.WalletContainerParser.JsonKeys
 import io.zerion.wallet.core.exceptions.WalletException.FailedToAddAccountException
 import io.zerion.wallet.core.exceptions.WalletException.FailedToDecryptMnemonicException
 import io.zerion.wallet.core.exceptions.WalletException.FailedToDecryptPrivateKeyException
@@ -11,6 +8,9 @@ import io.zerion.wallet.core.exceptions.WalletException.FailedToExportException
 import io.zerion.wallet.core.exceptions.WalletException.FailedToRemoveAccountException
 import io.zerion.wallet.core.exceptions.WalletException.InvalidDerivationPathException
 import io.zerion.wallet.core.exceptions.WalletException.UnableToDeriveAccountException
+import io.zerion.wallet.core.models.WalletContainer.Type.Mnemonic
+import io.zerion.wallet.core.utils.WalletContainerParser
+import io.zerion.wallet.core.utils.WalletContainerParser.JsonKeys
 import org.json.JSONArray
 import org.json.JSONObject
 import wallet.core.jni.CoinType
@@ -262,7 +262,7 @@ class WalletContainer(
             }
         }
         if (newStoredKey == null)
-                throw WalletException.FailedToChangePassword()
+            throw WalletException.FailedToChangePassword()
         storedKey = newStoredKey
     }
 
@@ -296,5 +296,11 @@ class WalletContainer(
     companion object {
 
         private const val currentVersion = 1
+
+        // load TrustWalletCore
+        // essential for all parts of app
+        init {
+            System.loadLibrary("TrustWalletCore")
+        }
     }
 }

@@ -7,4 +7,5 @@ import java.lang.RuntimeException
  */
 sealed class CipherException(reason: String): RuntimeException(reason) {
     class FailedLoadKeyStore(reason: String) : CipherException(reason)
+    class CorruptedFileName(reason: String): CipherException(reason)
 }

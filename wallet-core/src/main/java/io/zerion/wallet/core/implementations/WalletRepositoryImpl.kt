@@ -80,11 +80,11 @@ class WalletRepositoryImpl(private val dataSource: WalletDataSource) : WalletRep
     }
 
     private fun generateId(): String {
-        return UUID.randomUUID().toString().lowercase()
+        return UUID.randomUUID().toString().toLowerCase()
     }
 
     private fun makeWalletName(): String {
-        return "Wallet Group #${dataSource.count() + 1})"
+        return "Wallet Group #${dataSource.count() + 1}"
     }
 
     private fun importFromMnemonic(input: String, password: String, name: String?): WalletContainer {
@@ -112,6 +112,15 @@ class WalletRepositoryImpl(private val dataSource: WalletDataSource) : WalletRep
 
         return WalletContainer(id, storedKey)?.apply {
             addAccount(password)
+        }
+    }
+
+
+    companion object {
+        // load TrustWalletCore
+        // essential for all parts of app
+        init {
+            System.loadLibrary("TrustWalletCore")
         }
     }
 }

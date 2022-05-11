@@ -16,6 +16,9 @@ import wallet.core.jni.StoredKey
  * Created by rolea on 24.11.2021.
  */
 object WalletContainerParser {
+    init {
+        System.loadLibrary("TrustWalletCore")
+    }
 
     enum class JsonKeys {
         identifier,
@@ -65,6 +68,5 @@ object WalletContainerParser {
             throw MailformedContainerException()
         }
     }
-
 
 }

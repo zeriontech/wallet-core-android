@@ -4,13 +4,21 @@ package io.zerion.wallet.core.utils
  * Created by rolea on 21.11.2021.
  */
 import android.content.Context
+import io.zerion.wallet.core.exceptions.CipherException.CorruptedFileName
 import java.io.*
 
 object FileUtil {
 
     @Synchronized
     fun getFilePath(context: Context, fileName: String): String {
-        return File(context.filesDir, fileName).absolutePath
+        if (!isFileNameValid(fileName)) throw CorruptedFileName("Given $fileName doesn't exist in internal storage")
+        val file = File(context.filesDir, fileName).normalize()
+        return file.absolutePath
+    }
+
+    @Synchronized
+    fun isFileNameValid(fileName: String): Boolean {
+        return !fileName.contains("/")
     }
 
     fun writeBytesToFile(path: String, data: ByteArray): Boolean {
