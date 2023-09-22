@@ -14,7 +14,6 @@ object Dependencies {
     }
 
     object Crypto {
-        const val web3jCrypto = "org.web3j:crypto:${Versions.Crypto.web3jCrypto}"
         const val trustWallet = "com.trustwallet:wallet-core:${Versions.Crypto.trustWallet}"
     }
 
