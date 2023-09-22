@@ -13,8 +13,10 @@ fun String.isValidMnemonic(): Boolean {
 }
 
 fun String.isValidPrivateKey(): Boolean {
+    if (!this.isHex()) return false
     val data = this.toHexByteArray()
     val coinType = CoinType.ETHEREUM
+
     return PrivateKey.isValid(data, coinType.curve())
 }
 

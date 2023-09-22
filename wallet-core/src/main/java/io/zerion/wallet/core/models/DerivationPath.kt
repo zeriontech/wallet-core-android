@@ -10,6 +10,11 @@ class DerivationPath {
 
     var indices = MutableList(indexCount) { Index(0) }
 
+    /**
+     * Purpose is a constant that designated the derivation mode: it's set to 44' (or 0x8000002C) for legacy,
+     * 49' for segwit and 84' for native segwit.
+     * It indicates the specification, according to which the subtree of this node is generated.
+     */
     var purpose: Int
         get() = indices[0].value
         set(value) {
@@ -22,6 +27,9 @@ class DerivationPath {
             indices[1] = Index(value, hardened = true)
         }
 
+    /**
+     * This level splits the key space into independent user identities, so the wallet never mixes the coins across different accounts.
+     */
     var account: Int
         get() = indices[2].value
         set(value) {
@@ -34,6 +42,9 @@ class DerivationPath {
             indices[3] = Index(value, hardened = false)
         }
 
+    /**
+     * Addresses are numbered from index 0 in sequentially increasing manner.
+     */
     var address: Int
         get() = indices[4].value
         set(value) {
@@ -41,7 +52,7 @@ class DerivationPath {
         }
 
     constructor(indices: List<Index>) {
-        if (indices.size != indexCount) throw Exception("Not enough indices")
+        if (indices.size != indexCount) throw IllegalArgumentException("Not enough indices")
         this.indices = indices.toMutableList()
     }
 
@@ -67,7 +78,7 @@ class DerivationPath {
                 indices.add(Index(index, hardened = false))
             }
         }
-        if (indices.size != indexCount) throw Exception("Not enough indices")
+        if (indices.size != indexCount) throw IllegalArgumentException("Not enough indices")
     }
 
     override fun toString() = "m/${indices.joinToString("/") { it.toString() }}"

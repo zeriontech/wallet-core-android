@@ -19,6 +19,11 @@ fun String.toHexByteArray(): ByteArray {
     return Numeric.hexStringToByteArray(this)
 }
 
+fun String.isHex():Boolean {
+    val regex = Regex("-?[0-9a-fA-F]+")
+    return Numeric.cleanHexPrefix(this).matches(regex)
+}
+
 fun String.toByteString(): ByteString {
     return ByteString.copyFrom(this, Charsets.UTF_8)
 }

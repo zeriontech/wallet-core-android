@@ -7,7 +7,7 @@ import kotlin.experimental.and
  */
 object Numeric {
 
-    fun containsHexPrefix(input: String): Boolean {
+    private fun containsHexPrefix(input: String): Boolean {
         return input.length > 1 && input[0] == '0' && input[1] == 'x'
     }
 
@@ -32,7 +32,7 @@ object Numeric {
         val startIdx: Int
         if (len % 2 != 0) {
             data = ByteArray(len / 2 + 1)
-            data[0] = Character.digit(cleanInput.get(0), 16).toByte()
+            data[0] = Character.digit(cleanInput[0], 16).toByte()
             startIdx = 1
         } else {
             data = ByteArray(len / 2)
@@ -42,7 +42,7 @@ object Numeric {
         var i = startIdx
         while (i < len) {
             data[(i + 1) / 2] =
-                ((Character.digit(cleanInput.get(i), 16) shl 4) + Character.digit(cleanInput.get(i + 1), 16)).toByte()
+                ((Character.digit(cleanInput[i], 16) shl 4) + Character.digit(cleanInput[i + 1], 16)).toByte()
             i += 2
         }
         return data

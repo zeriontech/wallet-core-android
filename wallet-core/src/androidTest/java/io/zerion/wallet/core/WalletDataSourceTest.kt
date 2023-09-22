@@ -47,9 +47,9 @@ class WalletDataSourceTest {
     @Test
     fun testLoadByIdDataIsCorrect() {
         val wallet1 =  repo.createWalletPersist(password, null)
-        val mnemonic = wallet1.decryptMnemonic(password)
+        val mnemonic = wallet1.decryptMnemonic(password.toByteArray())
         Assert.assertNotNull(repo.load(wallet1.id))
-        Assert.assertEquals(mnemonic, repo.load(wallet1.id)!!.decryptMnemonic(password))
+        Assert.assertEquals(mnemonic, repo.load(wallet1.id)!!.decryptMnemonic(password.toByteArray()))
     }
 
     @Test
@@ -94,12 +94,12 @@ class WalletDataSourceTest {
         val wallet1 =  repo.createWalletPersist(password, null)
         Assert.assertNotNull(repo.load(wallet1.id))
         repo.delete(wallet1.id)
-        Assert.assertEquals(1, repo.count())
+        Assert.assertEquals(0, repo.count())
     }
 
     @Test
     fun testResavingWalletNotDoubled() {
-        val wallet1 =  repo.createWalletPersist(password, null)
+        val wallet1 = repo.createWalletPersist(password, null)
         Assert.assertEquals(1, repo.count())
         repo.save(wallet1)
         Assert.assertEquals(1, repo.count())

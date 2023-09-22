@@ -27,7 +27,8 @@ object WalletContainerParser {
         accounts,
         address,
         index,
-        derivationPath
+        derivationPath,
+        primaryAccount
     }
 
     fun fromJson(json: ByteArray): WalletContainer {
@@ -56,12 +57,15 @@ object WalletContainerParser {
                         .let { accounts.add(it) }
                 }
 
+                val primaryAccount = it.optString(JsonKeys.primaryAccount.name)
+
                 return WalletContainer(
                     id = id,
                     storedKey = wallet,
                     version = version,
                     name = name,
-                    accounts = accounts
+                    accounts = accounts,
+                    primaryAccount = primaryAccount
                 )
             }
         } catch (e: RuntimeException) {

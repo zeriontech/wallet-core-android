@@ -19,6 +19,7 @@ import wallet.core.jni.proto.Ethereum
  * Created by rolea on 14.12.2022.
  */
 object Signer {
+
     init {
         System.loadLibrary("TrustWalletCore")
     }
@@ -42,7 +43,12 @@ object Signer {
         val privateKey = createPrivateKey(privateData)
         val digest = if (addPrefix) makePrefixedDataHash(data) else data
 
-        return privateKey.sign(digest, ETHEREUM.curve())
+        val signed = privateKey.sign(digest, ETHEREUM.curve())
+        // transform V to yellow paper
+        // https://github.com/ethereum/EIPs/issues/155 this rule applies to trx and doesn't require fix
+        // learning paper: https://medium.com/mycrypto/the-magic-of-digital-signatures-on-ethereum-98fe184dc9c7
+        signed[64] = (signed[64] + 27).toByte()
+        return signed
     }
 
     private fun createPrivateKey(privateKey: ByteArray): PrivateKey {
@@ -50,20 +56,9 @@ object Signer {
     }
 
     private fun sign(transaction: TransactionInput, privateKey: ByteArray): ByteArray {
-        val input = Ethereum.SigningInput.newBuilder()
+        val input = transaction.toSignInput()
             .apply {
-                chainId = transaction.chainID
-                nonce = transaction.nonce
-                gasPrice = transaction.gasPrice
-                gasLimit = transaction.gas
-                toAddress = transaction.toAddress
                 this.privateKey = ByteString.copyFrom(privateKey)
-                this.transaction = Ethereum.Transaction.newBuilder().apply {
-                    contractGeneric = Ethereum.Transaction.ContractGeneric.newBuilder().apply {
-                        data = transaction.data
-                        amount = transaction.amount
-                    }.build()
-                }.build()
             }.build()
 
         val output = AnySigner.sign(input, CoinType.FANTOM, Ethereum.SigningOutput.parser())
@@ -75,6 +70,11 @@ object Signer {
         val typedDataJson = typedData.decodeToString()
         val digest = EthereumAbi.encodeTyped(typedDataJson)
 
-        return privateKey.sign(digest, ETHEREUM.curve())
+        val signed = privateKey.sign(digest, ETHEREUM.curve())
+        // transform V to yellow paper
+        // https://github.com/ethereum/EIPs/issues/155 this rule applies to trx and doesn't require fix
+        // learning paper: https://medium.com/mycrypto/the-magic-of-digital-signatures-on-ethereum-98fe184dc9c7
+        signed[64] = (signed[64] + 27).toByte()
+        return signed
     }
 }

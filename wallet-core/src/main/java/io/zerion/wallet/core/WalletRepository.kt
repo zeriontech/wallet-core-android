@@ -6,13 +6,32 @@ import io.zerion.wallet.core.models.WalletContainer
  * Created by rolea on 28.11.2021.
  */
 interface WalletRepository {
-    fun createWallet(password: String, name: String?): WalletContainer
 
-    fun createWalletPersist(password: String, name: String?): WalletContainer
+    fun migrateVersionsIfNeeded(password: ByteArray)
 
-    fun importWallet(input: String, password: String, name: String?): WalletContainer
+    fun createWallet(
+        password: String,
+        name: String?
+    ): WalletContainer
 
-    fun importWalletPersist(input: String, password: String, name: String?): WalletContainer
+    fun createWalletPersist(
+        password: String,
+        name: String?
+    ): WalletContainer
+
+    fun importWallet(
+        input: String,
+        password: String,
+        name: String?
+    ): WalletContainer
+
+    fun importWalletPersist(
+        input: String,
+        password: String,
+        name: String?
+    ): WalletContainer
+
+    fun changePassword(old: ByteArray, new: ByteArray)
 
     fun load(identifier: String): WalletContainer?
 
@@ -25,4 +44,15 @@ interface WalletRepository {
     fun delete(identifier: String)
 
     fun deleteAll()
+
+    fun exportWalletContainer(
+        identifier: String,
+        password: ByteArray,
+        exportPassword: ByteArray
+    ): WalletContainer
+    fun importWalletContainer(
+        walletContainerByteArray: ByteArray,
+        password: ByteArray,
+        walletContainerPassword: ByteArray
+    ): WalletContainer
 }

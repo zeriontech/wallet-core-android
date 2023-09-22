@@ -2,8 +2,9 @@
 .gradle/
 /local.properties
 .idea/
-/build
+*/build/
 /captures
+/build/kotlin/sessions/
 .externalNativeBuild
 
 #built application files

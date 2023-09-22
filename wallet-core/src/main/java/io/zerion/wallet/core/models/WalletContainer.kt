@@ -6,9 +6,9 @@ import io.zerion.wallet.core.exceptions.WalletException.FailedToDecryptMnemonicE
 import io.zerion.wallet.core.exceptions.WalletException.FailedToDecryptPrivateKeyException
 import io.zerion.wallet.core.exceptions.WalletException.FailedToExportException
 import io.zerion.wallet.core.exceptions.WalletException.FailedToRemoveAccountException
-import io.zerion.wallet.core.exceptions.WalletException.InvalidDerivationPathException
 import io.zerion.wallet.core.exceptions.WalletException.UnableToDeriveAccountException
 import io.zerion.wallet.core.models.WalletContainer.Type.Mnemonic
+import io.zerion.wallet.core.utils.DerivationPathFactory
 import io.zerion.wallet.core.utils.WalletContainerParser
 import io.zerion.wallet.core.utils.WalletContainerParser.JsonKeys
 import org.json.JSONArray
@@ -18,13 +18,12 @@ import wallet.core.jni.CoinType.ETHEREUM
 import wallet.core.jni.HDVersion.XPUB
 import wallet.core.jni.HDWallet
 import wallet.core.jni.PrivateKey
-import wallet.core.jni.Purpose.BIP44
 import wallet.core.jni.StoredKey
 
 /**
  * Created by rolea on 24.11.2021.
  */
-class WalletContainer(
+class WalletContainer private constructor(
     val id: String,
     private var storedKey: StoredKey,
 ) {
@@ -37,7 +36,12 @@ class WalletContainer(
         get() {
             return if (storedKey.isMnemonic) Mnemonic else Type.PrivateKey
         }
+
     var name: String
+
+    var primaryAccount: String? = null
+        private set
+
     var version: Int
         private set
 
@@ -46,13 +50,22 @@ class WalletContainer(
 
     private var coinType: CoinType
 
+
+    constructor(
+        id: String,
+        storedKey: StoredKey,
+        password: ByteArray
+    ) : this(id, storedKey) {
+        addPrimaryAccount(password)
+    }
+
     init {
         name = storedKey.name()
         version = currentVersion
         accounts = mutableListOf()
-        this.coinType = ETHEREUM
-        migrateVersionIfNeeded()
+        coinType = ETHEREUM
     }
+
 
     constructor(
         id: String,
@@ -60,38 +73,18 @@ class WalletContainer(
         version: Int,
         name: String,
         accounts: MutableList<WalletAccount>,
+        primaryAccount: String?,
     ) : this(id, storedKey) {
         this.name = name
         this.version = version
         this.accounts = accounts
         this.coinType = ETHEREUM
-        migrateVersionIfNeeded()
+        this.primaryAccount = primaryAccount
     }
 
-    private fun migrateVersionIfNeeded() {
-    }
-
-    private fun makeDerivationPath(accountIndex: Int): DerivationPath {
-        return DerivationPath(
-            BIP44.value(),
-            ETHEREUM.slip44Id(),
-            0,
-            0,
-            accountIndex
-        )
-    }
-
-    private fun makeDerivationPath(path: String): DerivationPath {
-        try {
-            return DerivationPath(path)
-        } catch (e: RuntimeException) {
-            throw InvalidDerivationPathException()
-        }
-    }
-
-    private fun deriveAccount(derivationPath: DerivationPath, password: String): WalletAccount {
+    private fun deriveAccount(derivationPath: DerivationPath, password: ByteArray): WalletAccount {
         val wallet = try {
-            storedKey.wallet(password.toByteArray())
+            storedKey.wallet(password)
         } catch (e: RuntimeException) {
             throw UnableToDeriveAccountException()
         }
@@ -124,17 +117,17 @@ class WalletContainer(
     }
 
     fun derivationPath(accountIndex: Int): String {
-        val path = makeDerivationPath(accountIndex)
+        val path = DerivationPathFactory.fromIndex(accountIndex)
         return path.toString()
     }
 
-    fun deriveAccount(derivationPath: String, password: String): WalletAccount {
-        val path = makeDerivationPath(derivationPath)
+    fun deriveAccount(derivationPath: String, password: ByteArray): WalletAccount {
+        val path = DerivationPathFactory.fromString(derivationPath)
         return deriveAccount(path, password)
     }
 
-    fun deriveAccount(accountIndex: Int, password: String): WalletAccount {
-        val path = makeDerivationPath(accountIndex)
+    fun deriveAccount(accountIndex: Int, password: ByteArray): WalletAccount {
+        val path = DerivationPathFactory.fromIndex(accountIndex)
         return deriveAccount(path, password)
     }
 
@@ -149,7 +142,7 @@ class WalletContainer(
         val accounts = mutableListOf<WalletAccount>()
 
         for (index in fromIndex..toIndex) {
-            val path = makeDerivationPath(index)
+            val path = DerivationPathFactory.fromIndex(index)
             accounts.add(
                 createWalletAccount(xpub, path)
             )
@@ -158,28 +151,43 @@ class WalletContainer(
         return accounts
     }
 
-    fun derivePrimaryAccount(password: String): WalletAccount {
-        val keyData = decryptPrimaryPrivateKey(password)
-        val privateKey = try {
-            PrivateKey(keyData)
-        } catch (e: RuntimeException) {
-            throw UnableToDeriveAccountException()
+    fun addPrimaryAccount(password: ByteArray) {
+        primaryAccount = derivePrimaryAccount(password).address
+    }
+
+    fun derivePrimaryAccount(password: ByteArray): WalletAccount {
+        return when (type) {
+            Mnemonic -> {
+                deriveAccount(
+                    accountIndex = 0,
+                    password = password
+                )
+            }
+
+            Type.PrivateKey -> {
+                val keyData = decryptPrimaryPrivateKey(password)
+                val privateKey = try {
+                    PrivateKey(keyData)
+                } catch (e: RuntimeException) {
+                    throw UnableToDeriveAccountException()
+                }
+
+                WalletAccount(
+                    address = coinType.deriveAddress(privateKey),
+                    index = null,
+                    derivationPath = null
+                )
+            }
         }
-
-        return WalletAccount(
-            coinType.deriveAddress(privateKey),
-            null,
-            null
-        )
     }
 
-    fun addAccount(password: String): WalletAccount {
+    fun addAccount(password: ByteArray): WalletAccount {
         val index = (accounts.mapNotNull { it.index }.maxByOrNull { it } ?: -1) + 1
-        val path = derivationPath(index)
-        return addAccount(path, password)
+        val path = DerivationPathFactory.fromIndex(index)
+        return addAccount(path.toString(), password)
     }
 
-    fun addAccount(derivationPath: String, password: String): WalletAccount {
+    fun addAccount(derivationPath: String, password: ByteArray): WalletAccount {
         return when (type) {
             Mnemonic -> {
                 if (hasAccount(derivationPath)) {
@@ -211,43 +219,42 @@ class WalletContainer(
     }
 
     fun decryptPrivateKey(derivationPath: String, password: String): ByteArray {
-        val path = makeDerivationPath(derivationPath)
+        val path = DerivationPathFactory.fromString(derivationPath)
         return decryptPrivateKey(path, password).data()
     }
 
     fun decryptPrivateKey(accountIndex: Int, password: String): ByteArray {
-        val path = makeDerivationPath(accountIndex)
+        val path = DerivationPathFactory.fromIndex(accountIndex)
         return decryptPrivateKey(path, password).data()
     }
 
-    fun decryptPrimaryPrivateKey(password: String): ByteArray {
+    fun decryptPrimaryPrivateKey(password: ByteArray): ByteArray {
         val privateKey = try {
-            storedKey.decryptPrivateKey(password.toByteArray())
+            storedKey.decryptPrivateKey(password)
         } catch (e: RuntimeException) {
-            throw  FailedToDecryptPrivateKeyException()
+            throw FailedToDecryptPrivateKeyException()
         }
         return privateKey
     }
 
-    fun decryptMnemonic(password: String): String {
+    fun decryptMnemonic(password: ByteArray): String {
         val mnemonic = try {
-            storedKey.decryptMnemonic(password.toByteArray())
+            storedKey.decryptMnemonic(password)
         } catch (e: RuntimeException) {
             throw  FailedToDecryptMnemonicException()
         }
         return mnemonic
     }
 
-    fun changePassword(old: String, new: String) {
+    fun changePassword(old: ByteArray, new: ByteArray) {
         val newStoredKey: StoredKey?
         when (type) {
             Type.PrivateKey -> {
-
                 val privateKeyData = decryptPrimaryPrivateKey(old)
                 newStoredKey = StoredKey.importPrivateKey(
                     privateKeyData,
                     storedKey.name(),
-                    new.encodeToByteArray(),
+                    new,
                     coinType
                 )
             }
@@ -256,7 +263,7 @@ class WalletContainer(
                 newStoredKey = StoredKey.importHDWallet(
                     mnemonic,
                     storedKey.name(),
-                    new.encodeToByteArray(),
+                    new,
                     coinType
                 )
             }
@@ -288,14 +295,20 @@ class WalletContainer(
                     put(accountJson)
                 }
             }
+            put(WalletContainerParser.JsonKeys.primaryAccount.name, primaryAccount)
             put(WalletContainerParser.JsonKeys.accounts.name, accountsArray)
         }
         return container.toString().encodeToByteArray()
     }
 
+    fun incrementVersion() {
+        version++
+    }
+
+
     companion object {
 
-        private const val currentVersion = 1
+        const val currentVersion = 2
 
         // load TrustWalletCore
         // essential for all parts of app

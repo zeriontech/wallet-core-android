@@ -36,7 +36,7 @@ class WalletDataSourceImpl(
     }
 
     override fun delete(id: String) {
-        cipherManager.remove(id)
+        cipherManager.remove(createKey(id))
     }
 
     override fun deleteAll() {
@@ -55,13 +55,11 @@ class WalletDataSourceImpl(
     }
 
     private fun loadByKey(id: String): WalletContainer? {
-        try {
+        return try {
             cipherManager.get(id)
-                .let {
-                    return WalletContainerParser.fromJson(it)
-                }
+                .let(WalletContainerParser::fromJson)
         } catch (e: RuntimeException) {
-            return null
+             null
         }
     }
 }

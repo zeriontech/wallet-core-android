@@ -19,7 +19,6 @@ import javax.crypto.CipherInputStream
 import javax.crypto.CipherOutputStream
 import javax.crypto.KeyGenerator
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.IvParameterSpec
 
 /**
  * Created by rolea on 21.11.2021.
@@ -41,7 +40,7 @@ class CipherManager(private val context: Context) {
     }
 
     fun remove(id: String) {
-        removeAliasAndFiles(context,id, id, id+ "iv")
+        removeAliasAndFiles(context, id, id, id + "iv")
     }
 
     fun getAllAliases(prefix: String): List<String> {
@@ -55,7 +54,7 @@ class CipherManager(private val context: Context) {
 
     /**
      * Load AndroidKeyStore.
-     * @return true if keystore loaded successfully
+     * @throws FailedLoadKeyStore if it was to any error during loading keystore
      */
     @Throws(FailedLoadKeyStore::class)
     private fun loadKeyStore(): KeyStore {
@@ -126,8 +125,7 @@ class CipherManager(private val context: Context) {
             generateKeyIfNecessary(keyStore, alias, false)
 
             val encryptedDataFilePath = getFilePath(context, aliasFile)
-            val secretKey = keyStore.getKey(alias, null) ?:
-            throw Exception("Secret is null on setData: $alias")
+            val secretKey = keyStore.getKey(alias, null) ?: throw Exception("Secret is null on setData: $alias")
 
             val inCipher = Cipher.getInstance(CIPHER_ALGORITHM)
             inCipher.init(Cipher.ENCRYPT_MODE, secretKey)
@@ -178,7 +176,8 @@ class CipherManager(private val context: Context) {
                     throw Exception("File and key is gone: $alias")
             }
 
-            val iv = FileUtil.readBytesFromFile(getFilePath(context, aliasIV)) ?: throw NullPointerException("iv is missing for $alias")
+            val iv = FileUtil.readBytesFromFile(getFilePath(context, aliasIV))
+                ?: throw NullPointerException("iv is missing for $alias")
 
             val outCipher = Cipher.getInstance(CIPHER_ALGORITHM)
             outCipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(TAG_LENGTH, iv))
@@ -196,7 +195,7 @@ class CipherManager(private val context: Context) {
             keyStore.deleteEntry(alias)
             File(getFilePath(context, dataFileName)).delete()
             File(getFilePath(context, ivFileName)).delete()
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
