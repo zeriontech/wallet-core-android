@@ -56,3 +56,7 @@ val signed = Signer.sign(Transaction(transaction), privateKey).toHex()
 ## Dependencies
 
 [TrustWalletCore](https://github.com/trustwallet/wallet-core) - low level wallet cryptography functionality, written in C++ with Java wrappers.
+
+
+## License
+Zerion Wallet Core is available under the Apache 2.0 license. See the [LICENSE](LICENSE) file for more info.
